@@ -18,7 +18,8 @@ const hasteMap = new JestHasteMap.default({
 });
 
 const { hasteFS } = await hasteMap.build();
-const testFiles = hasteFS.getAllFiles();
+// We built a virtual filesystem of all `.js` files, so we need to apply a filter to limit ourselves to `.test.js` files.
+const testFiles = hasteFS.matchFilesWithGlob(["**/*.test.js"]);
 
 console.log(testFiles);
 // ['/path/to/tests/01.test.js', '/path/to/tests/02.test.js', …]
