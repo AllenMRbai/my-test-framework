@@ -13,11 +13,13 @@ exports.runTest = async function(testFile) {
   };
   try {
     resetState();
-    // 用vm来替代eval
-    // 但运行 node index.mjs circus 时会报错 ReferenceError: setTimeout is not defined
-    const context = { describe, it, expect, mock };
-    vm.createContext(context);
-    vm.runInContext(code, context);
+    // setTimeout是worker.js的上线文内容，我们没有通过context传到vm里面，所以沙箱里访问不到。
+    // 同样的，所有通过上下文访问的变量都需要传到沙箱内，所以jest作者整合里一个 jest-environment-node ，将所有要用到的变量都整合一起
+    const NodeEnvironment = require("jest-environment-node");
+    const environment = new NodeEnvironment({
+      testEnvironmentOptions: { describe, it, expect, mock },
+    });
+    vm.runInContext(code, environment.getVmContext());
 
     const { testResults } = await run();
     testResult.testResults = testResults;
