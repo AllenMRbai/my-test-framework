@@ -1,4 +1,5 @@
 import JestHasteMap from "jest-haste-map";
+import fs from "fs";
 import { cpus } from "os";
 import { dirname } from "path";
 import { fileURLToPath } from "url";
@@ -21,5 +22,9 @@ const { hasteFS } = await hasteMap.build();
 // We built a virtual filesystem of all `.js` files, so we need to apply a filter to limit ourselves to `.test.js` files.
 const testFiles = hasteFS.matchFilesWithGlob(["**/*.test.js"]);
 
-console.log(testFiles);
-// ['/path/to/tests/01.test.js', '/path/to/tests/02.test.js', …]
+await Promise.all(
+  Array.from(testFiles).map(async (testFile) => {
+    const code = await fs.promises.readFile(testFile, "utf8");
+    console.log(testFile + ":\n" + code);
+  })
+);
