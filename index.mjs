@@ -32,24 +32,27 @@ const worker = new Worker(join(root, "worker.js"), {
   enableWorkerThreads: true,
 });
 
-// 我们都知道javascript是单线程的，Promise只是异步，并不是真正的多线程
-// 我们需要尽可能多的利用CPU来提高我们的运行效率。我们可以用node的工作线程 worker_threads
-// const worker = require('worker_threads');
-// 这里用的是 jest-worker，一个基于worker_threads封装的包，使用更便捷
-// 运行后，发现打印的内容是乱序的
+let hasFailed = false;
 await Promise.all(
   Array.from(testFiles).map(async (testFile) => {
     const { success, errorMessage } = await worker.runTest(testFile);
-    // 为了便于阅读，我们用chalk将输出内容进行美化
     const status = success
       ? chalk.green.inverse.bold(" PASS ")
       : chalk.red.inverse.bold(" FAIL ");
 
     console.log(status + " " + chalk.dim(relative(root, testFile)));
     if (!success) {
+      hasFailed = true; // Something went wrong!
       console.log("  " + errorMessage);
     }
   })
 );
-
-worker.end(); // Shut down the worker.
+worker.end();
+if (hasFailed) {
+  console.log(
+    "\n" + chalk.red.bold("Test run failed, please fix all the failing tests.")
+  );
+  // Set an exit code to indicate failure.
+  // 非正常退出，后面的pipeline会停止运行
+  process.exitCode = 1;
+}
