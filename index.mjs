@@ -1,10 +1,11 @@
 import JestHasteMap from "jest-haste-map";
 import { cpus } from "os";
-import { dirname } from "path";
+import { dirname, relative } from "path";
 import { fileURLToPath } from "url";
 import fs from "fs";
 import { Worker } from "jest-worker";
 import { join } from "path";
+import chalk from "chalk";
 
 // Get the root path to our project (Like `__dirname`).
 const root = dirname(fileURLToPath(import.meta.url));
@@ -35,8 +36,16 @@ const worker = new Worker(join(root, "worker.js"), {
 // 运行后，发现打印的内容是乱序的
 await Promise.all(
   Array.from(testFiles).map(async (testFile) => {
-    const testResult = await worker.runTest(testFile);
-    console.log(testResult);
+    const { success, errorMessage } = await worker.runTest(testFile);
+    // 为了便于阅读，我们用chalk将输出内容进行美化
+    const status = success
+      ? chalk.green.inverse.bold(" PASS ")
+      : chalk.red.inverse.bold(" FAIL ");
+
+    console.log(status + " " + chalk.dim(relative(root, testFile)));
+    if (!success) {
+      console.log("  " + errorMessage);
+    }
   })
 );
 
