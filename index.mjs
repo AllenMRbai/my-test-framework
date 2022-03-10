@@ -22,8 +22,11 @@ const hasteMap = new JestHasteMap.default({
 });
 
 const { hasteFS } = await hasteMap.build();
-// We built a virtual filesystem of all `.js` files, so we need to apply a filter to limit ourselves to `.test.js` files.
-const testFiles = hasteFS.matchFilesWithGlob(["**/*.test.js"]);
+// 让我们的测试框架支持自定义过滤文件
+// node index.mjs mock.test.js
+const testFiles = hasteFS.matchFilesWithGlob([
+  process.argv[2] ? `**/${process.argv[2]}*` : "**/*.test.js",
+]);
 
 const worker = new Worker(join(root, "worker.js"), {
   enableWorkerThreads: true,
