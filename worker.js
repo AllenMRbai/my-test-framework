@@ -11,8 +11,8 @@ exports.runTest = async function(testFile) {
     errorMessage: null,
   };
   try {
-    // 每个测试文件间的state是共享的，我们需要手动reset掉
     resetState();
+    // 使用eval有个问题，它的上线文和worker.js是共用的，这样会存在上下文污染和篡改的问题。
     eval(code);
     // node index.mjs circus
     const { testResults } = await run();
