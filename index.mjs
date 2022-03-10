@@ -1,8 +1,10 @@
 import JestHasteMap from "jest-haste-map";
-import fs from "fs";
 import { cpus } from "os";
 import { dirname } from "path";
 import { fileURLToPath } from "url";
+import fs from "fs";
+import { Worker } from "jest-worker";
+import { join } from "path";
 
 // Get the root path to our project (Like `__dirname`).
 const root = dirname(fileURLToPath(import.meta.url));
@@ -22,9 +24,20 @@ const { hasteFS } = await hasteMap.build();
 // We built a virtual filesystem of all `.js` files, so we need to apply a filter to limit ourselves to `.test.js` files.
 const testFiles = hasteFS.matchFilesWithGlob(["**/*.test.js"]);
 
+const worker = new Worker(join(root, "worker.js"), {
+  enableWorkerThreads: true,
+});
+
+// 我们都知道javascript是单线程的，Promise只是异步，并不是真正的多线程
+// 我们需要尽可能多的利用CPU来提高我们的运行效率。我们可以用node的工作线程 worker_threads
+// const worker = require('worker_threads');
+// 这里用的是 jest-worker，一个基于worker_threads封装的包，使用更便捷
+// 运行后，发现打印的内容是乱序的
 await Promise.all(
   Array.from(testFiles).map(async (testFile) => {
-    const code = await fs.promises.readFile(testFile, "utf8");
-    console.log(testFile + ":\n" + code);
+    const testResult = await worker.runTest(testFile);
+    console.log(testResult);
   })
 );
+
+worker.end(); // Shut down the worker.
