@@ -1,8 +1,9 @@
 const fs = require("fs");
 const expect = require("expect");
 const mock = require("jest-mock");
-// 同样的，我们将 describe 和 it 封装成一个模块
 const { describe, it, run, resetState } = require("jest-circus");
+// 很幸运，node提供了vm模块，可以用来做沙盒
+const vm = require("vm");
 
 exports.runTest = async function(testFile) {
   const code = await fs.promises.readFile(testFile, "utf8");
@@ -12,9 +13,12 @@ exports.runTest = async function(testFile) {
   };
   try {
     resetState();
-    // 使用eval有个问题，它的上线文和worker.js是共用的，这样会存在上下文污染和篡改的问题。
-    eval(code);
-    // node index.mjs circus
+    // 用vm来替代eval
+    // 但运行 node index.mjs circus 时会报错 ReferenceError: setTimeout is not defined
+    const context = { describe, it, expect, mock };
+    vm.createContext(context);
+    vm.runInContext(code, context);
+
     const { testResults } = await run();
     testResult.testResults = testResults;
     testResult.success = testResults.every((result) => !result.errors.length);
